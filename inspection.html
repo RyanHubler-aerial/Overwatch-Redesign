@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zone Inspection App - Overwatch Security</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Use only CDNJS which is allowed in artifacts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+  <script>
+    // Check Chart.js loading status
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        if (typeof Chart !== 'undefined') {
+          console.log('Chart.js loaded successfully! Version:', Chart.version);
+          window.chartJsLoaded = true;
+        } else {
+          console.error('Chart.js failed to load from CDNJS');
+          window.chartJsLoaded = false;
+          // Try to load again
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+          script.onload = function() {
+            console.log('Chart.js v3.9.1 loaded as fallback');
+            window.chartJsLoaded = true;
+          };
+          script.onerror = function() {
+            console.error('All Chart.js loading attempts failed');
+            window.chartJsLoaded = false;
+          };
+          document.head.appendChild(script);
+        }
+      }, 1000);
+    });
+  </script>
+  <style>
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #1e1e2f;
+      color: #f5f5f5;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Login Screen Styles */
+    .login-container {
+      display: flex;
+      flex: 1 0 auto;
+      justify-content: center;
+      align-items: center;
+      padding: 28px 16px;
+      background: linear-gradient(135deg, #1e1e2f 0%, #28293d 100%);
+    }
+
+    .login-box {
+      background: #28293d;
+      padding: 36px 34px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .ow-brand {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .ow-brand img {
+      height: 44px;
+      width: auto;
+    }
+
+    .ow-brand-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.05;
+    }
+
+    .ow-brand-name {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    .ow-brand-sub {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #4db4f5;
+    }
+
+    .login-logo {
+      max-width: 150px;
+      margin-bottom: 20px;
+    }
+
+    .login-title {
+      color: #d8d8f5;
+      margin-bottom: 30px;
+      font-size: 1.8rem;
+    }
+
+    .login-input {
+      background: #1e1e2f;
+      color: #fff;
+      border: 2px solid #555;
+      border-radius: 8px;
+      padding: 12px 15px;
+      width: 100%;
+      margin-bottom: 20px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .login-input:focus {
+      outline: none;
+      border-color: #4059ad;
+      box-shadow: 0 0 10px rgba(64, 89, 173, 0.3);
+    }
+
+    .login-btn {
+      background: #4059ad;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s;
+    }
+
+    .login-btn:hover {
+      background: #2d4082;
+    }
+
+    .login-error {
+      color: #ff6b6b;
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+
+    .app-content {
+      display: none;
+    }
+
+    .app-content.authenticated {
+      display: block;
+    }
+
+    .container {
+      background: #28293d;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo-img {
+      max-width: 180px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Button row styling */
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: between;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #343553;
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .button-row.bottom {
+      margin-top: 30px;
+      margin-bottom: 0;
+    }
+
+    /* Section Styles */
+    .section-container {
+      background: #2a2b47;
+      border: 2px solid #4059ad;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      padding: 15px;
+      min-height: 60px;
+    }
+
+    .section-header {
+      background: #4059ad;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .section-header:hover {
+      background: #2d4082;
+    }
+
+    .section-title-input {
+      background: transparent;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 1.1rem;
+      flex-grow: 1;
+      margin-right: 10px;
+      pointer-events: auto;
+    }
+
+    .section-title-input:focus {
+      outline: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      padding: 2px 5px;
+    }
+
+    .section-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .section-toggle-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .section-toggle-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .section-content {
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .section-content.collapsed {
+      display: none;
+    }
+
+    .zone-section {
+      background: #343553;
+      border: none;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      margin-bottom: 15px;
+      transition: transform 0.2s;
+      cursor: move;
+    }
+
+    .zone-section:hover {
+      transform: scale(1.02);
+    }
+
+    .zone-section.dragging {
+      opacity: 0.5;
+      transform: rotate(5deg);
+    }
+
+    .drop-zone {
+      min-height: 50px;
+      border: 2px dashed #666;
+      border-radius: 8px;
+      margin: 10px 0;
+      padding: 20px;
+      text-align: center;
+      color: #999;
+      transition: all 0.3s;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #4059ad;
+      background: rgba(64, 89, 173, 0.1);
+      color: #4059ad;
+    }
+
+    .zone-header {
+      background: #282a36;
+      color: #d8d8f5;
+      font-weight: bold;
+    }
+
+    .btn {
+      border-radius: 6px;
+    }
+
+    .btn-success { background: #008c8c; }
+    .btn-primary { background: #4059ad; }
+    .btn-warning { background: #d49d42; }
+    .btn-danger { background: #a13232; }
+    .btn-info { background: #17a2b8; }
+
+    input, textarea, select {
+      background: #1e1e2f;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    .zone-img {
+      display: block;
+      max-width: 250px;
+      border-radius: 6px;
+      border: 2px solid #555;
+    }
+
+    .search-results-container {
+      position: absolute;
+      background: #343553;
+      color: #fff;
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: none;
+      top: 100%;
+      left: 0;
+    }
+
+    .search-result-item {
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .search-result-item:hover {
+      background: #4059ad;
+    }
+
+    .search-close {
+      text-align: right;
+      font-size: 1.2em;
+      margin-bottom: 5px;
+    }
+
+    .search-close span {
+      cursor: pointer;
+      font-weight: bold;
+      color: #ccc;
+    }
+
+    .search-close span:hover {
+      color: #f88;
+    }
+
+    /* Charts Modal */
+    .charts-modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    .charts-content {
+      background-color: #28293d;
+      margin: 2% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: #f5f5f5;
+    }
+
+    .chart-container {
+      background: #343553;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* FIXED: Better chart wrapper sizing */
+    .chart-wrapper {
+      width: 100%;
+      max-width: 350px;
+      height: 350px;
+      position: relative;
+      padding: 10px;
+    }
+
+    .chart-canvas {
+      max-width: 100% !important;
+      max-height: 100% !important;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: #fff;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px 10px;
+      color: #aaa;
+      font-size: 0.9em;
+      background: #1e1e2f;
+    }
+
+    footer img {
+      max-height: 80px;
+      margin-bottom: 10px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .no-print {
+        display: none !important;
+      }
+      
+      .charts-modal {
+        display: none !important;
+      }
+      
+      .print-report {
+        display: block !important;
+        page-break-after: avoid;
+      }
+      
+      .print-charts {
+        display: none !important;
+      }
+      
+      .print-zone {
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+        border: 1px solid #000;
+        padding: 10px;
+      }
+
+      .print-section {
+        page-break-inside: avoid;
+        margin-bottom: 30px;
+        border: 2px solid #000;
+        padding: 15px;
+      }
+
+      .print-section-header {
+        font-weight: bold;
+        font-size: 16pt;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 5px;
+        background: #f0f0f0;
+        padding: 8px;
+      }
+      
+      .print-zone-header {
+        font-weight: bold;
+        font-size: 14pt;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #000;
+        padding-bottom: 5px;
+      }
+      
+      .print-zone-image {
+        max-width: 300px;
+        max-height: 200px;
+        margin: 10px 0;
+        border: 1px solid #000;
+      }
+      
+      .print-field {
+        margin: 5px 0;
+      }
+      
+      .print-field strong {
+        font-weight: bold;
+      }
+      
+      .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #000;
+        padding-bottom: 15px;
+      }
+      
+      .print-header h1 {
+        font-size: 18pt;
+        margin: 10px 0;
+      }
+      
+      .print-logo {
+        max-width: 150px;
+        margin-bottom: 10px;
+      }
+
+      /* Chart print styles - only when printing charts specifically */
+      body.printing-charts .print-charts {
+        display: block !important;
+      }
+      
+      body.printing-charts .print-report {
+        display: none !important;
+      }
+
+      .print-chart {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .print-chart:last-child {
+        page-break-after: avoid;
+        margin-bottom: 0;
+      }
+
+      .print-chart h3 {
+        margin-bottom: 15px;
+        font-size: 16pt;
+      }
+
+      .print-chart canvas {
+        max-width: 100%;
+        height: auto !important;
+      }
+    }
+
+    .print-report, .print-charts {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-container">
+  <div class="login-box">
+    <div class="ow-brand">
+      <img src="assets/overwatch-shield.svg" alt="OverWatch Security Shield"/>
+      <span class="ow-brand-text"><span class="ow-brand-name">OverWatch</span><span class="ow-brand-sub">Security</span></span>
+    </div>
+    <h2 class="login-title">Zone Inspection App</h2>
+    <p style="color: #aaa; margin-bottom: 25px;">Enter password to access the application</p>
+    <input type="password" id="passwordInput" class="login-input" placeholder="Enter password..." />
+    <button onclick="checkPassword()" class="login-btn">Login</button>
+    <div id="loginError" class="login-error" style="display: none;">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- Main Application (hidden by default) -->
+<div id="appContent" class="app-content">
+<div class="container py-4 no-print">
+  <div class="logo-container">
+    <div class="ow-brand" style="margin-bottom: 0;">
+      <img src="assets/overwatch-shield.svg" alt="OverWatch Security Shield"/>
+      <span class="ow-brand-text"><span class="ow-brand-name">OverWatch</span><span class="ow-brand-sub">Security</span></span>
+    </div>
+  </div>
+
+  <h1 class="mb-4 text-center">Zone Inspection Application</h1>
+
+  <!-- Top Button Row -->
+  <div class="button-row">
+    <button class="btn btn-danger" onclick="resetInspection()">Reset Inspection</button>
+    <button class="btn btn-success" onclick="showCharts()">Generate Charts</button>
+    <input type="text" id="saveFileName" class="form-control" placeholder="Enter file name..." style="max-width: 200px;">
+    <button class="btn btn-primary" onclick="downloadSave()">Save</button>
+    <input type="file" id="restoreFile" accept=".json" onchange="restoreFromFile()" class="form-control" style="max-width: 200px;">
+    <button class="btn btn-warning" onclick="addSection()">Add Section</button>
+    <button class="btn btn-warning" onclick="addZone()">Add Zone</button>
+    <button class="btn btn-secondary" onclick="exportToCSV()">Export CSV</button>
+    <button class="btn btn-info" onclick="printReport()">Print Report</button>
+    <div style="position: relative; max-width: 250px;">
+      <input type="text" id="searchZone" class="form-control" placeholder="Search zones..." oninput="filterZones()">
+      <div id="searchResults" class="search-results-container"></div>
+    </div>
+  </div>
+
+  <div id="sectionsContainer"></div>
+  
+  <!-- Unsectioned zones -->
+  <div id="unsectionedZones" class="section-container">
+    <div class="section-header" onclick="toggleSection('unsectioned')">
+      <span>Unsectioned Zones</span>
+      <div class="section-controls">
+        <button class="section-toggle-btn" id="toggle-unsectioned">▼ Collapse</button>
+      </div>
+    </div>
+    <div class="section-content" id="content-unsectioned">
+      <div class="drop-zone" ondrop="dropZone(event, 'unsectioned')" ondragover="allowDrop(event)">
+        Drop zones here or add new zones
+      </div>
+      <div id="unsectionedZonesContent"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Button Row (Duplicate) -->
+  <div class="button-row bottom">
+    <button class="btn btn-danger" onclick="resetInspection()">Reset Inspection</button>
+    <button class="btn btn-success" onclick="showCharts()">Generate Charts</button>
+    <input type="text" id="saveFileName2" class="form-control" placeholder="Enter file name..." style="max-width: 200px;">
+    <button class="btn btn-primary" onclick="downloadSaveBottom()">Save</button>
+    <input type="file" id="restoreFile2" accept=".json" onchange="restoreFromFile2()" class="form-control" style="max-width: 200px;">
+    <button class="btn btn-warning" onclick="addSection()">Add Section</button>
+    <button class="btn btn-warning" onclick="addZone()">Add Zone</button>
+    <button class="btn btn-secondary" onclick="exportToCSV()">Export CSV</button>
+    <button class="btn btn-info" onclick="printReport()">Print Report</button>
+    <div style="position: relative; max-width: 250px;">
+      <input type="text" id="searchZone2" class="form-control" placeholder="Search zones..." oninput="filterZones2()">
+      <div id="searchResults2" class="search-results-container"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Charts Modal -->
+<div id="chartsModal" class="charts-modal">
+  <div class="charts-content">
+    <span class="close" onclick="closeCharts()">&times;</span>
+    <h2 class="text-center mb-4">Zone Inspection Analytics</h2>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="chart-container">
+          <h3 class="text-center mb-3">Functional Status</h3>
+          <div class="chart-wrapper">
+            <canvas id="functionalChart" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="chart-container">
+          <h3 class="text-center mb-3">Zone Types</h3>
+          <div class="chart-wrapper">
+            <canvas id="zoneTypeChart" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="chart-container">
+          <h3 class="text-center mb-3">Notification Devices</h3>
+          <div class="chart-wrapper">
+            <canvas id="notificationChart" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <div class="chart-container">
+          <h3 class="text-center mb-3">Total Statistics</h3>
+          <div style="padding: 20px; text-align: left;">
+            <div id="statsContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-3">
+      <button class="btn btn-info" onclick="printCharts()">Print Charts</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Report Template -->
+<div id="printReport" class="print-report">
+  <div class="print-header">
+    <img src="assets/inspection/overwatch_logo.png" alt="Overwatch Security Logo" class="print-logo"/>
+    <h1>Zone Inspection Report</h1>
+    <p><strong>Generated:</strong> <span id="printDate"></span></p>
+    <p><strong>Total Zones:</strong> <span id="printZoneCount"></span></p>
+  </div>
+  <div id="printContent"></div>
+  
+  <!-- Customer Signature Section -->
+  <div style="margin-top: 40px; page-break-inside: avoid;">
+    <div style="border-top: 2px solid #000; padding-top: 20px;">
+      <h3 style="margin-bottom: 30px; text-align: center;">Customer Acknowledgment</h3>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 40px;">
+        <div style="width: 45%;">
+          <div style="border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; height: 50px;"></div>
+          <p style="margin: 0; font-size: 10pt;"><strong>Customer Signature</strong></p>
+        </div>
+        <div style="width: 45%;">
+          <div style="border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; height: 50px;"></div>
+          <p style="margin: 0; font-size: 10pt;"><strong>Date</strong></p>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 30px;">
+        <div style="border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; height: 30px;"></div>
+        <p style="margin: 0; font-size: 10pt;"><strong>Print Name</strong></p>
+      </div>
+      
+      <div style="margin-bottom: 30px;">
+        <div style="border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; height: 30px;"></div>
+        <p style="margin: 0; font-size: 10pt;"><strong>Company/Organization</strong></p>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 10pt; line-height: 1.4; margin-bottom: 15px;">
+          <strong>Acknowledgment:</strong> I acknowledge that the zone inspection detailed in this report has been completed to my satisfaction. The information contained herein accurately represents the current status of the inspected security zones.
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <div style="margin-top: 30px; text-align: center; font-size: 10pt; color: #666;">
+    <p>© <span id="printYear"></span> Overwatch Security - Clites Tech. All rights reserved.</p>
+  </div>
+</div>
+
+<!-- Print Charts Template -->
+<div id="printCharts" class="print-charts">
+  <div class="print-header">
+    <img src="assets/inspection/overwatch_logo.png" alt="Overwatch Security Logo" class="print-logo"/>
+    <h1>Zone Inspection Analytics</h1>
+    <p><strong>Generated:</strong> <span id="printChartsDate"></span></p>
+  </div>
+  <div id="printChartsContent"></div>
+</div>
+
+<footer class="no-print">
+  <img src="assets/inspection/Clites_Tech_Cartoon_Fox_Jacket.png" alt="Clites Tech Logo">
+  <div>&copy; <span id="year"></span> Clites Tech. All rights reserved.</div>
+</footer>
+
+<script>
+const CORRECT_PASSWORD = "OverWatch2913";
+let isAuthenticated = false;
+
+// Chart instances to track and destroy properly
+let chartInstances = {};
+
+// Section collapse states
+let sectionStates = {};
+
+// Check if user is already authenticated
+function checkAuthentication() {
+  const savedAuth = sessionStorage.getItem("authenticated");
+  if (savedAuth === "true") {
+    isAuthenticated = true;
+    showApp();
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appContent').classList.remove('authenticated');
+  document.getElementById('passwordInput').focus();
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContent').classList.add('authenticated');
+}
+
+function checkPassword() {
+  const password = document.getElementById('passwordInput').value;
+  const errorDiv = document.getElementById('loginError');
+  
+  if (password === CORRECT_PASSWORD) {
+    isAuthenticated = true;
+    sessionStorage.setItem("authenticated", "true");
+    errorDiv.style.display = 'none';
+    showApp();
+    // Clear password field for security
+    document.getElementById('passwordInput').value = '';
+  } else {
+    errorDiv.style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+  }
+}
+
+// Allow Enter key to submit password and initialize authentication
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, setting up authentication...');
+  
+  const passwordInput = document.getElementById('passwordInput');
+  if (passwordInput) {
+    passwordInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        checkPassword();
+      }
+    });
+  }
+  
+  // Check authentication on page load
+  checkAuthentication();
+  
+  // Initialize the app components
+  initializeApp();
+});
+
+let sectionList = [];
+let zoneList = [];
+let zoneTypes = ["", "Fire", "Medical", "Burglary", "Supervisory", "Custom"];
+let notificationDevices = ["", "Strobe", "Horn Strobe", "Speaker", "Speaker Strobe"];
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+function initializeApp() {
+  initializeSections();
+  initializeUnsectionedZones();
+}
+
+function initializeSections() {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+  sectionList.forEach((section, i) => createSectionElement(section, i));
+}
+
+function initializeUnsectionedZones() {
+  const container = document.getElementById('unsectionedZonesContent');
+  container.innerHTML = '';
+  const unsectionedZones = zoneList.filter(zone => !zone.sectionId);
+  unsectionedZones.forEach((zone, i) => {
+    const originalIndex = zoneList.indexOf(zone);
+    createZoneSection(zone, originalIndex, container);
+  });
+}
+
+// Section collapse/expand functionality
+function toggleSection(sectionId) {
+  const content = document.getElementById(`content-${sectionId}`);
+  const toggleBtn = document.getElementById(`toggle-${sectionId}`);
+  
+  if (content.classList.contains('collapsed')) {
+    content.classList.remove('collapsed');
+    toggleBtn.textContent = '▼ Collapse';
+    sectionStates[sectionId] = false;
+  } else {
+    content.classList.add('collapsed');
+    toggleBtn.textContent = '▶ Expand';
+    sectionStates[sectionId] = true;
+  }
+}
+
+// Helper function to update dropdown options from loaded JSON data
+function updateDropdownOptionsFromData(data) {
+  // Start with current defaults and add any saved custom options
+  let newZoneTypes = ["", "Fire", "Medical", "Burglary", "Supervisory"];
+  let newNotificationDevices = ["", "Strobe", "Horn Strobe", "Speaker", "Speaker Strobe"];
+  
+  // Add any custom types from the saved data
+  if (data.zoneTypes) {
+    data.zoneTypes.forEach(type => {
+      if (type && type !== "Custom" && !newZoneTypes.includes(type)) {
+        newZoneTypes.push(type);
+      }
+    });
+  }
+  
+  // Add any custom notification devices from the saved data
+  if (data.notificationDevices) {
+    data.notificationDevices.forEach(device => {
+      if (device && !newNotificationDevices.includes(device)) {
+        newNotificationDevices.push(device);
+      }
+    });
+  }
+  
+  // Extract unique values from zone data
+  if (data.zones) {
+    data.zones.forEach(zone => {
+      // Add unique zone types
+      if (zone.type && zone.type !== "N/A" && zone.type.trim() !== "" && !newZoneTypes.includes(zone.type)) {
+        newZoneTypes.push(zone.type);
+      }
+      
+      // Add unique notification devices
+      if (zone.notificationDevice && zone.notificationDevice !== "N/A" && zone.notificationDevice.trim() !== "" && !newNotificationDevices.includes(zone.notificationDevice)) {
+        newNotificationDevices.push(zone.notificationDevice);
+      }
+    });
+  }
+  
+  // Always keep "Custom" as the last option for zone types
+  newZoneTypes.push("Custom");
+  
+  // Update global arrays
+  zoneTypes = newZoneTypes;
+  notificationDevices = newNotificationDevices;
+  
+  console.log('Updated zone types:', zoneTypes);
+  console.log('Updated notification devices:', notificationDevices);
+}
+
+// Helper function to update dropdown options from legacy zone data
+function updateDropdownOptionsFromZones(zones) {
+  let newZoneTypes = ["", "Fire", "Medical", "Burglary", "Supervisory"];
+  let newNotificationDevices = ["", "Strobe", "Horn Strobe", "Speaker", "Speaker Strobe"];
+  
+  // Extract unique values from zone data
+  zones.forEach(zone => {
+    // Add unique zone types
+    if (zone.type && zone.type !== "N/A" && zone.type.trim() !== "" && !newZoneTypes.includes(zone.type)) {
+      newZoneTypes.push(zone.type);
+    }
+    
+    // Add unique notification devices
+    if (zone.notificationDevice && zone.notificationDevice !== "N/A" && zone.notificationDevice.trim() !== "" && !newNotificationDevices.includes(zone.notificationDevice)) {
+      newNotificationDevices.push(zone.notificationDevice);
+    }
+  });
+  
+  // Always keep "Custom" as the last option for zone types
+  newZoneTypes.push("Custom");
+  
+  // Update global arrays
+  zoneTypes = newZoneTypes;
+  notificationDevices = newNotificationDevices;
+  
+  console.log('Updated zone types from legacy data:', zoneTypes);
+  console.log('Updated notification devices from legacy data:', notificationDevices);
+}
+
+// Helper function to find the best matching option in a dropdown array
+function findBestMatch(value, optionsArray) {
+  if (!value || value.trim() === "") {
+    return optionsArray[0]; // Return blank option
+  }
+  
+  const cleanValue = value.trim();
+  
+  // Direct match first
+  if (optionsArray.includes(cleanValue)) {
+    return cleanValue;
+  }
+  
+  // Create mapping rules for common variations
+  const mappingRules = {
+    // Notification device mappings
+    "Horn": "Horn Strobe",
+    "Horns": "Horn Strobe", 
+    "Horn Strobes": "Horn Strobe",
+    "Strobes": "Strobe",
+    "Speaker Strobes": "Speaker Strobe",
+    "Speakers": "Speaker",
+    
+    // Zone type mappings (case-insensitive)
+    "fire alarm": "Fire",
+    "medical alarm": "Medical", 
+    "burglary alarm": "Burglary",
+    "security": "Burglary",
+    "smoke": "Fire",
+    "heat": "Fire",
+    "panic": "Medical",
+    "duress": "Medical"
+  };
+  
+  // Check mapping rules (case-insensitive)
+  const lowerValue = cleanValue.toLowerCase();
+  for (const [key, mappedValue] of Object.entries(mappingRules)) {
+    if (lowerValue === key.toLowerCase() && optionsArray.includes(mappedValue)) {
+      console.log(`Mapped "${cleanValue}" to "${mappedValue}"`);
+      return mappedValue;
+    }
+  }
+  
+  // Partial match search (case-insensitive)
+  const bestMatch = optionsArray.find(option => {
+    if (!option || option === "") return false;
+    return option.toLowerCase().includes(lowerValue) || lowerValue.includes(option.toLowerCase());
+  });
+  
+  if (bestMatch) {
+    console.log(`Partial match: "${cleanValue}" to "${bestMatch}"`);
+    return bestMatch;
+  }
+  
+  // If no match found, add the original value to the options array and return it
+  if (!optionsArray.includes(cleanValue)) {
+    if (optionsArray === zoneTypes) {
+      // Insert before "Custom" option
+      optionsArray.splice(optionsArray.length - 1, 0, cleanValue);
+    } else {
+      // Add to end for notification devices
+      optionsArray.push(cleanValue);
+    }
+    console.log(`Added new option "${cleanValue}" to dropdown`);
+  }
+  
+  return cleanValue;
+}
+
+function resetInspection() {
+  if (confirm("This will delete all sections and zones and reset the inspection. Are you sure?")) {
+    sectionList = [];
+    zoneList = [];
+    sectionStates = {};
+    // Destroy all chart instances
+    Object.keys(chartInstances).forEach(key => {
+      if (chartInstances[key]) {
+        chartInstances[key].destroy();
+        delete chartInstances[key];
+      }
+    });
+    initializeApp();
+  }
+}
+
+function addSection() {
+  const name = prompt("Enter section name:");
+  if (!name || name.trim() === '') return;
+  const newSection = {
+    id: 'section_' + Date.now(),
+    name: name.trim()
+  };
+  sectionList.push(newSection);
+  initializeSections();
+}
+
+function addZone() {
+  const name = prompt("Enter new zone name:");
+  if (!name || name.trim() === '') return;
+  const newZone = {
+    id: 'zone_' + Date.now(),
+    name,
+    location: '',
+    type: zoneTypes[0], // Defaults to blank option
+    notificationDevice: notificationDevices[0], // Defaults to blank option
+    functional: 'N/A',
+    notes: '',
+    image: '',
+    sectionId: null
+  };
+  zoneList.push(newZone);
+  initializeApp();
+}
+
+function duplicateSpecificZone(originalIndex) {
+  if (originalIndex < 0 || originalIndex >= zoneList.length) {
+    alert("Invalid zone selected for duplication.");
+    return;
+  }
+  
+  const originalZone = zoneList[originalIndex];
+  
+  // Create a deep copy of the zone
+  const duplicatedZone = {
+    id: 'zone_' + Date.now(),
+    name: originalZone.name + ' - Copy',
+    location: originalZone.location,
+    type: originalZone.type,
+    notificationDevice: originalZone.notificationDevice || notificationDevices[0], // Include notification device
+    functional: originalZone.functional,
+    notes: originalZone.notes,
+    image: originalZone.image, // Copy the image data
+    sectionId: originalZone.sectionId // Keep in same section
+  };
+  
+  // Add to the zone list
+  zoneList.push(duplicatedZone);
+  
+  // Refresh the interface
+  initializeApp();
+  
+  // Show success message
+  alert(`Zone "${originalZone.name}" has been duplicated as "${duplicatedZone.name}"`);
+}
+
+function createSectionElement(section, sectionIndex) {
+  const container = document.createElement('div');
+  container.className = 'section-container';
+  
+  const isCollapsed = sectionStates[section.id] || false;
+  const toggleText = isCollapsed ? '▶ Expand' : '▼ Collapse';
+  const contentClass = isCollapsed ? 'section-content collapsed' : 'section-content';
+  
+  container.innerHTML = `
+    <div class="section-header" onclick="event.stopPropagation(); if (event.target === this) toggleSection('${section.id}')">
+      <input type="text" class="section-title-input" value="${section.name}" 
+             onchange="updateSectionName(${sectionIndex})" placeholder="Section name..."
+             onclick="event.stopPropagation()">
+      <div class="section-controls">
+        <button class="section-toggle-btn" id="toggle-${section.id}" onclick="event.stopPropagation(); toggleSection('${section.id}')">${toggleText}</button>
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); confirmDeleteSection(${sectionIndex})">✕ Delete</button>
+      </div>
+    </div>
+    <div class="${contentClass}" id="content-${section.id}">
+      <div class="drop-zone" ondrop="dropZone(event, '${section.id}')" ondragover="allowDrop(event)">
+        Drop zones here
+      </div>
+      <div id="section-${section.id}"></div>
+    </div>
+  `;
+  
+  document.getElementById('sectionsContainer').appendChild(container);
+  
+  // Add zones that belong to this section
+  const sectionZones = zoneList.filter(zone => zone.sectionId === section.id);
+  const sectionContent = document.getElementById(`section-${section.id}`);
+  sectionZones.forEach(zone => {
+    const originalIndex = zoneList.indexOf(zone);
+    createZoneSection(zone, originalIndex, sectionContent);
+  });
+}
+
+function createZoneSection(zone, index, container) {
+  // Ensure backwards compatibility for zones without notification device
+  if (!zone.notificationDevice) {
+    zone.notificationDevice = notificationDevices[0]; // Blank option
+  }
+  
+  const zoneElement = document.createElement('div');
+  zoneElement.className = 'zone-section';
+  zoneElement.draggable = true;
+  zoneElement.ondragstart = (e) => dragStart(e, index);
+  zoneElement.ondragend = dragEnd;
+  zoneElement.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <input type="text" class="form-control zone-header me-2" id="name-${index}" value="${zone.name}" onchange="updateZoneName(${index})">
+      <button class="btn btn-sm btn-secondary me-2" onclick="toggleZoneDetails(${index})" id="toggle-btn-${index}">▼ Show</button>
+      <button class="btn btn-sm btn-info me-2" onclick="duplicateSpecificZone(${index})" title="Duplicate this zone">📋 Duplicate</button>
+      <button class="btn btn-sm btn-danger" onclick="confirmDeleteZone(${index})">✕ Delete</button>
+    </div>
+    <div id="zone-details-${index}" style="display: none;">
+      <div class="mb-2">
+        <label for="location-${index}">Location:</label>
+        <input type="text" class="form-control" id="location-${index}" value="${zone.location || ''}" onchange="updateZoneLocation(${index})" placeholder="Enter zone location...">
+      </div>
+      <div class="mb-2">
+        <label for="type-${index}">Zone Type:</label>
+        <select class="form-select" id="type-${index}" onchange="updateZoneType(${index})">
+          ${zoneTypes.map(type => `<option value="${type}" ${zone.type === type ? 'selected' : ''}>${type === '' ? '' : type}</option>`).join('')}
+        </select>
+      </div>
+      <div class="mb-2">
+        <label for="notification-${index}"><strong>Notification Device:</strong></label>
+        <select class="form-select" id="notification-${index}" onchange="updateZoneNotificationDevice(${index})">
+          ${notificationDevices.map(device => `<option value="${device}" ${zone.notificationDevice === device ? 'selected' : ''}>${device === '' ? '' : device}</option>`).join('')}
+        </select>
+      </div>
+      <div class="mb-2">
+        <label for="functional-${index}">Functional:</label>
+        <select class="form-select" id="functional-${index}" onchange="updateZoneFunctional(${index})">
+          <option value="Yes" ${zone.functional === 'Yes' ? 'selected' : ''}>Yes</option>
+          <option value="No" ${zone.functional === 'No' ? 'selected' : ''}>No</option>
+          <option value="N/A" ${zone.functional === 'N/A' ? 'selected' : ''}>N/A</option>
+        </select>
+      </div>
+      <div class="mb-2">
+        <label for="notes-${index}">Notes:</label>
+        <textarea class="form-control" id="notes-${index}" rows="2" onchange="updateZoneNotes(${index})">${zone.notes}</textarea>
+      </div>
+      <div class="mb-2">
+        <label for="image-${index}">Upload Image:</label>
+        <input type="file" accept="image/*" class="form-control" id="image-${index}" onchange="updateZoneImage(event, ${index})">
+        ${zone.image ? `<img src="${zone.image}" class="zone-img mt-2" id="preview-${index}">` : ''}
+      </div>
+    </div>
+  `;
+  container.appendChild(zoneElement);
+}
+
+// Drag and Drop functionality
+let draggedZoneIndex = null;
+
+function dragStart(e, zoneIndex) {
+  draggedZoneIndex = zoneIndex;
+  e.target.classList.add('dragging');
+}
+
+function dragEnd(e) {
+  e.target.classList.remove('dragging');
+  draggedZoneIndex = null;
+}
+
+function allowDrop(e) {
+  e.preventDefault();
+  e.target.classList.add('drag-over');
+}
+
+function dropZone(e, sectionId) {
+  e.preventDefault();
+  e.target.classList.remove('drag-over');
+  
+  if (draggedZoneIndex !== null) {
+    if (sectionId === 'unsectioned') {
+      zoneList[draggedZoneIndex].sectionId = null;
+    } else {
+      zoneList[draggedZoneIndex].sectionId = sectionId;
+    }
+    initializeApp();
+  }
+}
+
+// Add event listeners for drag over
+document.addEventListener('dragover', function(e) {
+  if (!e.target.classList.contains('drop-zone')) {
+    e.target.classList.remove('drag-over');
+  }
+});
+
+function updateSectionName(sectionIndex) {
+  const inputs = document.querySelectorAll('.section-title-input');
+  if (inputs[sectionIndex]) {
+    sectionList[sectionIndex].name = inputs[sectionIndex].value;
+  }
+}
+
+function confirmDeleteSection(sectionIndex) {
+  if (confirm("Are you sure you want to delete this section? Zones will be moved to unsectioned.")) {
+    const section = sectionList[sectionIndex];
+    // Move zones back to unsectioned
+    zoneList.forEach(zone => {
+      if (zone.sectionId === section.id) {
+        zone.sectionId = null;
+      }
+    });
+    delete sectionStates[section.id];
+    sectionList.splice(sectionIndex, 1);
+    initializeApp();
+  }
+}
+
+function toggleZoneDetails(index) {
+  const details = document.getElementById(`zone-details-${index}`);
+  const button = document.getElementById(`toggle-btn-${index}`);
+  if (details.style.display === "none") {
+    details.style.display = "block";
+    button.innerText = "▲ Hide";
+  } else {
+    details.style.display = "none";
+    button.innerText = "▼ Show";
+  }
+}
+
+function updateZoneLocation(index) {
+  zoneList[index].location = document.getElementById(`location-${index}`).value;
+}
+
+function updateZoneType(index) {
+  const selected = document.getElementById(`type-${index}`).value;
+  if (selected === "Custom") {
+    const newType = prompt("Enter your custom zone type:");
+    if (newType && newType.trim() !== '') {
+      const trimmedType = newType.trim();
+      // Check if this custom type already exists
+      if (!zoneTypes.includes(trimmedType)) {
+        // Insert before "Custom" option (which is always last)
+        zoneTypes.splice(zoneTypes.length - 1, 0, trimmedType);
+        console.log('Added new custom zone type:', trimmedType);
+      }
+      zoneList[index].type = trimmedType;
+      initializeApp();
+    }
+    // If user cancels or enters empty string, keep the current type
+  } else {
+    zoneList[index].type = selected;
+  }
+}
+
+function updateZoneNotificationDevice(index) {
+  zoneList[index].notificationDevice = document.getElementById(`notification-${index}`).value;
+}
+
+function updateZoneName(index) {
+  zoneList[index].name = document.getElementById(`name-${index}`).value;
+}
+
+function updateZoneFunctional(index) {
+  zoneList[index].functional = document.getElementById(`functional-${index}`).value;
+}
+
+function updateZoneNotes(index) {
+  zoneList[index].notes = document.getElementById(`notes-${index}`).value;
+}
+
+function updateZoneImage(event, index) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    zoneList[index].image = e.target.result;
+    initializeApp();
+  };
+  reader.readAsDataURL(file);
+}
+
+function confirmDeleteZone(index) {
+  if (confirm("Are you sure you want to delete this zone?")) {
+    zoneList.splice(index, 1);
+    initializeApp();
+  }
+}
+
+function exportToCSV() {
+  let csvContent = "Section,Zone Name,Location,Type,Notification Device,Functional Status,Notes\n";
+  zoneList.forEach(zone => {
+    const sectionName = zone.sectionId ? 
+      (sectionList.find(s => s.id === zone.sectionId)?.name || 'Unknown') : 
+      'Unsectioned';
+    const zoneType = zone.type || 'Not specified';
+    const notificationDevice = zone.notificationDevice || 'Not specified';
+    csvContent += `"${sectionName}","${zone.name}","${zone.location || ''}","${zoneType}","${notificationDevice}","${zone.functional}","${zone.notes}"\n`;
+  });
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "Zone_Inspection_Report.csv";
+  link.click();
+}
+
+function printReport() {
+  // Hide any open modals before printing
+  document.getElementById('chartsModal').style.display = 'none';
+  
+  // Generate the print content
+  const printContent = document.getElementById('printContent');
+  const printDate = document.getElementById('printDate');
+  const printZoneCount = document.getElementById('printZoneCount');
+  const printYear = document.getElementById('printYear');
+  
+  // Set header information
+  printDate.textContent = new Date().toLocaleString();
+  printZoneCount.textContent = zoneList.length;
+  printYear.textContent = new Date().getFullYear();
+  
+  // Clear previous content completely
+  printContent.innerHTML = '';
+  
+  if (zoneList.length === 0) {
+    printContent.innerHTML = '<p style="text-align: center; font-style: italic;">No zones to display</p>';
+  } else {
+    // Generate sections for printing
+    sectionList.forEach(section => {
+      const sectionZones = zoneList.filter(zone => zone.sectionId === section.id);
+      if (sectionZones.length > 0) {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'print-section';
+        sectionDiv.innerHTML = `<div class="print-section-header">${section.name}</div>`;
+        
+        sectionZones.forEach(zone => {
+          const zoneDiv = document.createElement('div');
+          zoneDiv.className = 'print-zone';
+          
+          let imageHtml = '';
+          if (zone.image) {
+            imageHtml = `<img src="${zone.image}" alt="Zone Image" class="print-zone-image">`;
+          }
+          
+          zoneDiv.innerHTML = `
+            <div class="print-zone-header">${zone.name}</div>
+            <div class="print-field"><strong>Location:</strong> ${zone.location || 'Not specified'}</div>
+            <div class="print-field"><strong>Type:</strong> ${zone.type || 'Not specified'}</div>
+            <div class="print-field"><strong>Notification Device:</strong> ${zone.notificationDevice || 'Not specified'}</div>
+            <div class="print-field"><strong>Functional Status:</strong> ${zone.functional}</div>
+            <div class="print-field"><strong>Notes:</strong> ${zone.notes || 'No notes'}</div>
+            ${imageHtml}
+          `;
+          
+          sectionDiv.appendChild(zoneDiv);
+        });
+        
+        printContent.appendChild(sectionDiv);
+      }
+    });
+    
+    // Add unsectioned zones
+    const unsectionedZones = zoneList.filter(zone => !zone.sectionId);
+    if (unsectionedZones.length > 0) {
+      const sectionDiv = document.createElement('div');
+      sectionDiv.className = 'print-section';
+      sectionDiv.innerHTML = `<div class="print-section-header">Unsectioned Zones</div>`;
+      
+      unsectionedZones.forEach(zone => {
+        const zoneDiv = document.createElement('div');
+        zoneDiv.className = 'print-zone';
+        
+        let imageHtml = '';
+        if (zone.image) {
+          imageHtml = `<img src="${zone.image}" alt="Zone Image" class="print-zone-image">`;
+        }
+        
+        zoneDiv.innerHTML = `
+          <div class="print-zone-header">${zone.name}</div>
+          <div class="print-field"><strong>Location:</strong> ${zone.location || 'Not specified'}</div>
+          <div class="print-field"><strong>Type:</strong> ${zone.type || 'Not specified'}</div>
+          <div class="print-field"><strong>Notification Device:</strong> ${zone.notificationDevice || 'Not specified'}</div>
+          <div class="print-field"><strong>Functional Status:</strong> ${zone.functional}</div>
+          <div class="print-field"><strong>Notes:</strong> ${zone.notes || 'No notes'}</div>
+          ${imageHtml}
+        `;
+        
+        sectionDiv.appendChild(zoneDiv);
+      });
+      
+      printContent.appendChild(sectionDiv);
+    }
+  }
+  
+  // Make sure print charts content is hidden during regular report printing
+  const printChartsDiv = document.getElementById('printCharts');
+  if (printChartsDiv) {
+    printChartsDiv.style.display = 'none';
+  }
+  
+  // Generate charts for the report and then print
+  setTimeout(() => {
+    window.print();
+  }, 100);
+}
+
+// FIXED: Enhanced Charts functionality with proper pie chart rendering
+function showCharts() {
+  console.log('=== CHART GENERATION STARTED ===');
+  
+  // Check if we have any zones to chart
+  if (zoneList.length === 0) {
+    alert('No zones available to generate charts. Please add some zones first.');
+    return;
+  }
+
+  // Test if Chart.js is loaded
+  if (typeof Chart === 'undefined') {
+    alert('Chart.js is not loaded! Check your internet connection.');
+    console.error('Chart.js not found!');
+    return;
+  }
+  
+  console.log('Chart.js found:', Chart);
+  console.log('Total zones to chart:', zoneList.length);
+  console.log('Zone data:', zoneList);
+  
+  // Destroy existing charts before creating new ones
+  ['functionalChart', 'zoneTypeChart', 'notificationChart'].forEach(chartId => {
+    if (chartInstances[chartId]) {
+      chartInstances[chartId].destroy();
+      delete chartInstances[chartId];
+    }
+  });
+  
+  // Show the modal
+  const modal = document.getElementById('chartsModal');
+  if (!modal) {
+    alert('Charts modal not found!');
+    return;
+  }
+  
+  modal.style.display = 'block';
+  console.log('Modal displayed');
+  
+  // Wait for modal to be visible, then generate charts
+  setTimeout(() => {
+    console.log('Starting chart generation...');
+    createFunctionalPieChart();
+    createZoneTypeChart();
+    createNotificationDeviceChart();
+    createStatistics();
+  }, 500);
+}
+
+// FIXED: Improved pie chart creation with proper sizing and no border issues
+function createFunctionalPieChart() {
+  console.log('Creating functional status chart...');
+  
+  const canvas = document.getElementById('functionalChart');
+  if (!canvas) {
+    console.error('Canvas element not found!');
+    return;
+  }
+  
+  // Clear and properly size canvas
+  const ctx = canvas.getContext('2d');
+  canvas.width = 300;
+  canvas.height = 300;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Count functional statuses
+  let yesCount = 0, noCount = 0, naCount = 0;
+  
+  zoneList.forEach((zone, index) => {
+    const status = zone.functional;
+    console.log(`Zone ${index}: "${zone.name}" - Functional: "${status}"`);
+    
+    if (status === 'Yes') {
+      yesCount++;
+    } else if (status === 'No') {
+      noCount++;
+    } else {
+      naCount++;
+    }
+  });
+  
+  console.log('Functional counts: Yes=' + yesCount + ', No=' + noCount + ', N/A=' + naCount);
+  
+  const totalCount = yesCount + noCount + naCount;
+  if (totalCount === 0) {
+    console.log('No zones found to chart');
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#f5f5f5';
+    ctx.textAlign = 'center';
+    ctx.fillText('No zones to display', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  
+  // Prepare data arrays
+  const chartData = [];
+  const chartLabels = [];
+  const chartColors = [];
+  
+  if (yesCount > 0) {
+    chartData.push(yesCount);
+    chartLabels.push(`Functional (${yesCount})`);
+    chartColors.push('#28a745');
+  }
+  if (noCount > 0) {
+    chartData.push(noCount);
+    chartLabels.push(`Non-Functional (${noCount})`);
+    chartColors.push('#dc3545');
+  }
+  if (naCount > 0) {
+    chartData.push(naCount);
+    chartLabels.push(`N/A (${naCount})`);
+    chartColors.push('#ffc107');
+  }
+  
+  // Create the chart with FIXED settings
+  try {
+    chartInstances.functionalChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          data: chartData,
+          backgroundColor: chartColors,
+          borderWidth: 1,  // FIXED: Reduced border width
+          borderColor: '#2a2b47'  // FIXED: Use darker border that matches background
+        }]
+      },
+      options: {
+        responsive: false,  // FIXED: Disable responsive to prevent sizing issues
+        maintainAspectRatio: false,  // FIXED: Disable aspect ratio maintenance
+        layout: {
+          padding: 10  // FIXED: Add padding to prevent clipping
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#f5f5f5',
+              font: { size: 11 },
+              padding: 12,
+              usePointStyle: true  // FIXED: Use point style for better legends
+            }
+          }
+        }
+      }
+    });
+    
+    console.log('✅ Functional chart created successfully');
+    
+  } catch (error) {
+    console.error('❌ Error creating functional chart:', error);
+  }
+}
+
+function createZoneTypeChart() {
+  console.log('Creating zone type chart...');
+  
+  const canvas = document.getElementById('zoneTypeChart');
+  if (!canvas) {
+    console.error('Zone type canvas element not found!');
+    return;
+  }
+  
+  const ctx = canvas.getContext('2d');
+  canvas.width = 300;
+  canvas.height = 300;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Count zone types - only count zones that have a type specified (not blank)
+  const typeCounts = {};
+  zoneList.forEach(zone => {
+    if (zone.type && zone.type.trim() !== '') {
+      const type = zone.type;
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    }
+  });
+  
+  console.log('Zone type counts (excluding blank):', typeCounts);
+  
+  if (Object.keys(typeCounts).length === 0) {
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#f5f5f5';
+    ctx.textAlign = 'center';
+    ctx.fillText('No zone types specified', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  
+  const typeLabels = Object.keys(typeCounts).map(type => `${type} (${typeCounts[type]})`);
+  const typeData = Object.values(typeCounts);
+  const typeColors = [
+    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57',
+    '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43'
+  ];
+  
+  try {
+    chartInstances.zoneTypeChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: typeLabels,
+        datasets: [{
+          data: typeData,
+          backgroundColor: typeColors.slice(0, typeData.length),
+          borderWidth: 1,  // FIXED: Reduced border width
+          borderColor: '#2a2b47'  // FIXED: Use darker border
+        }]
+      },
+      options: {
+        responsive: false,  // FIXED: Disable responsive
+        maintainAspectRatio: false,  // FIXED: Disable aspect ratio maintenance
+        layout: {
+          padding: 10  // FIXED: Add padding
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#f5f5f5',
+              font: { size: 11 },
+              padding: 12,
+              usePointStyle: true  // FIXED: Use point style
+            }
+          }
+        }
+      }
+    });
+    
+    console.log('✅ Zone type chart created successfully');
+    
+  } catch (error) {
+    console.error('❌ Error creating zone type chart:', error);
+  }
+}
+
+function createNotificationDeviceChart() {
+  console.log('Creating notification device chart...');
+  
+  const canvas = document.getElementById('notificationChart');
+  if (!canvas) {
+    console.error('Notification chart canvas element not found!');
+    return;
+  }
+  
+  const ctx = canvas.getContext('2d');
+  canvas.width = 300;
+  canvas.height = 300;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Count notification devices - only count zones that have a device specified (not blank)
+  const deviceCounts = {};
+  zoneList.forEach(zone => {
+    if (zone.notificationDevice && zone.notificationDevice.trim() !== '') {
+      const device = zone.notificationDevice;
+      deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+    }
+  });
+  
+  console.log('Notification device counts (excluding blank):', deviceCounts);
+  
+  if (Object.keys(deviceCounts).length === 0) {
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#f5f5f5';
+    ctx.textAlign = 'center';
+    ctx.fillText('No notification devices specified', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  
+  const deviceLabels = Object.keys(deviceCounts).map(device => `${device} (${deviceCounts[device]})`);
+  const deviceData = Object.values(deviceCounts);
+  const deviceColors = [
+    '#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6',
+    '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#f1c40f'
+  ];
+  
+  try {
+    chartInstances.notificationChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: deviceLabels,
+        datasets: [{
+          data: deviceData,
+          backgroundColor: deviceColors.slice(0, deviceData.length),
+          borderWidth: 1,  // FIXED: Reduced border width
+          borderColor: '#2a2b47'  // FIXED: Use darker border
+        }]
+      },
+      options: {
+        responsive: false,  // FIXED: Disable responsive
+        maintainAspectRatio: false,  // FIXED: Disable aspect ratio maintenance
+        layout: {
+          padding: 10  // FIXED: Add padding
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#f5f5f5',
+              font: { size: 11 },
+              padding: 12,
+              usePointStyle: true  // FIXED: Use point style
+            }
+          }
+        }
+      }
+    });
+    
+    console.log('✅ Notification device chart created successfully');
+    
+  } catch (error) {
+    console.error('❌ Error creating notification device chart:', error);
+  }
+}
+
+function createStatistics() {
+  console.log('Creating enhanced statistics...');
+  
+  const statsContent = document.getElementById('statsContent');
+  if (!statsContent) {
+    console.error('Stats content element not found');
+    return;
+  }
+  
+  const totalZones = zoneList.length;
+  const totalSections = sectionList.length;
+  
+  let functionalZones = 0, nonFunctionalZones = 0, naZones = 0, zonesWithImages = 0;
+  
+  // Count statistics
+  zoneList.forEach(zone => {
+    if (zone.functional === 'Yes') {
+      functionalZones++;
+    } else if (zone.functional === 'No') {
+      nonFunctionalZones++;
+    } else {
+      naZones++;
+    }
+    
+    if (zone.image && zone.image.trim() !== '') {
+      zonesWithImages++;
+    }
+  });
+  
+  // Count zone types (only specified ones)
+  const typeCounts = {};
+  let zonesWithTypes = 0;
+  zoneList.forEach(zone => {
+    if (zone.type && zone.type.trim() !== '') {
+      const type = zone.type;
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+      zonesWithTypes++;
+    }
+  });
+  
+  // Count notification devices (only specified ones)
+  const deviceCounts = {};
+  let zonesWithDevices = 0;
+  zoneList.forEach(zone => {
+    if (zone.notificationDevice && zone.notificationDevice.trim() !== '') {
+      const device = zone.notificationDevice;
+      deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+      zonesWithDevices++;
+    }
+  });
+  
+  // Calculate total devices
+  const totalDevices = Object.values(deviceCounts).reduce((sum, count) => sum + count, 0);
+  
+  // Calculate percentages
+  const functionalPercent = totalZones > 0 ? Math.round((functionalZones / totalZones) * 100) : 0;
+  const nonFunctionalPercent = totalZones > 0 ? Math.round((nonFunctionalZones / totalZones) * 100) : 0;
+  const naPercent = totalZones > 0 ? Math.round((naZones / totalZones) * 100) : 0;
+  const imagesPercent = totalZones > 0 ? Math.round((zonesWithImages / totalZones) * 100) : 0;
+  const typesPercent = totalZones > 0 ? Math.round((zonesWithTypes / totalZones) * 100) : 0;
+  const devicesPercent = totalZones > 0 ? Math.round((zonesWithDevices / totalZones) * 100) : 0;
+  
+  // Generate zone type breakdown (only specified types)
+  let zoneTypeBreakdown = '<p><strong>Zone Types (Specified Only):</strong></p>';
+  if (Object.keys(typeCounts).length === 0) {
+    zoneTypeBreakdown += '<p style="font-style: italic; color: #aaa;">No zone types specified</p>';
+  } else {
+    zoneTypeBreakdown += '<ul>';
+    Object.entries(typeCounts).forEach(([type, count]) => {
+      const percent = zonesWithTypes > 0 ? Math.round((count / zonesWithTypes) * 100) : 0;
+      zoneTypeBreakdown += `<li>${type}: ${count} (${percent}% of specified types)</li>`;
+    });
+    zoneTypeBreakdown += '</ul>';
+  }
+  
+  // Generate notification device breakdown (only specified devices)
+  let deviceBreakdown = '<p><strong>Notification Devices (Specified Only):</strong></p>';
+  if (Object.keys(deviceCounts).length === 0) {
+    deviceBreakdown += '<p style="font-style: italic; color: #aaa;">No notification devices specified</p>';
+  } else {
+    deviceBreakdown += '<ul>';
+    Object.entries(deviceCounts).forEach(([device, count]) => {
+      const percent = zonesWithDevices > 0 ? Math.round((count / zonesWithDevices) * 100) : 0;
+      deviceBreakdown += `<li>${device}: ${count} (${percent}% of specified devices)</li>`;
+    });
+    deviceBreakdown += '</ul>';
+  }
+  
+  statsContent.innerHTML = `
+    <div style="color: #f5f5f5; line-height: 1.6; font-size: 14px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <p><strong>Total Devices:</strong> ${totalZones}</p>
+          <p><strong>Total Sections:</strong> ${totalSections}</p>
+          <hr style="border-color: #555; margin: 15px 0;">
+          <p><strong>Functional Status:</strong></p>
+          <ul style="margin-left: 20px;">
+            <li>Functional: ${functionalZones} (${functionalPercent}%)</li>
+            <li>Non-Functional: ${nonFunctionalZones} (${nonFunctionalPercent}%)</li>
+            <li>N/A Status: ${naZones} (${naPercent}%)</li>
+          </ul>
+          <p><strong>Zones with Images:</strong> ${zonesWithImages} (${imagesPercent}%)</p>
+          <hr style="border-color: #555; margin: 15px 0;">
+          <p><strong>Device Classification:</strong></p>
+          <ul style="margin-left: 20px;">
+            <li>Zones with Types: ${zonesWithTypes} (${typesPercent}%)</li>
+            <li>Notification Devices: ${zonesWithDevices} (${devicesPercent}%)</li>
+          </ul>
+        </div>
+        <div>
+          ${zoneTypeBreakdown}
+          ${deviceBreakdown}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  console.log('✅ Enhanced statistics created successfully');
+}
+
+function closeCharts() {
+  console.log('Closing charts modal');
+  document.getElementById('chartsModal').style.display = 'none';
+}
+
+function printCharts() {
+  console.log('=== PRINT CHARTS REQUESTED ===');
+  
+  if (zoneList.length === 0) {
+    alert('No zones available to print charts. Please add some zones first.');
+    return;
+  }
+
+  document.getElementById('chartsModal').style.display = 'none';
+  
+  const printReportDiv = document.getElementById('printReport');
+  if (printReportDiv) {
+    printReportDiv.style.display = 'none';
+  }
+
+  const printChartsContent = document.getElementById('printChartsContent');
+  const printChartsDate = document.getElementById('printChartsDate');
+  
+  printChartsDate.textContent = new Date().toLocaleString();
+  
+  // Generate enhanced print charts HTML
+  printChartsContent.innerHTML = `
+    <div class="print-chart">
+      <h3>Functional Status Distribution</h3>
+      <div style="width: 300px; height: 300px; margin: 0 auto 15px auto;">
+        <canvas id="printFunctionalChart" width="300" height="300"></canvas>
+      </div>
+    </div>
+    <div class="print-chart">
+      <h3>Zone Types Distribution</h3>
+      <div style="width: 300px; height: 300px; margin: 0 auto 15px auto;">
+        <canvas id="printZoneTypeChart" width="300" height="300"></canvas>
+      </div>
+    </div>
+    <div class="print-chart">
+      <h3>Notification Devices Distribution</h3>
+      <div style="width: 300px; height: 300px; margin: 0 auto 15px auto;">
+        <canvas id="printNotificationChart" width="300" height="300"></canvas>
+      </div>
+    </div>
+    <div class="print-chart" style="margin-bottom: 0;">
+      <h3>Summary Statistics</h3>
+      <div style="text-align: left; padding: 15px; max-width: 600px; margin: 0 auto;">
+        ${document.getElementById('statsContent').innerHTML}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('printCharts').style.display = 'block';
+  document.body.classList.add('printing-charts');
+  
+  setTimeout(() => {
+    console.log('Generating print charts...');
+    generatePrintCharts();
+    // FIXED: Increased delay to ensure charts are fully rendered before printing
+    setTimeout(() => {
+      console.log('Launching print dialog...');
+      window.print();
+      
+      setTimeout(() => {
+        document.body.classList.remove('printing-charts');
+        document.getElementById('printCharts').style.display = 'none';
+      }, 1000);
+    }, 1000);  // FIXED: Increased from 600ms to 1000ms
+  }, 300);  // FIXED: Increased from 200ms to 300ms
+}
+
+// FIXED: Enhanced Charts functionality with proper pie chart rendering
+function generatePrintCharts() {
+  console.log('=== CREATING PRINT CHARTS ===');
+  
+  try {
+    // Generate functional status print chart
+    const funcCanvas = document.getElementById('printFunctionalChart');
+    if (funcCanvas) {
+      // FIXED: Properly clear and size canvas
+      const funcCtx = funcCanvas.getContext('2d');
+      funcCanvas.width = 300;
+      funcCanvas.height = 300;
+      funcCtx.clearRect(0, 0, funcCanvas.width, funcCanvas.height);
+      
+      let yesCount = 0, noCount = 0, naCount = 0;
+      zoneList.forEach(zone => {
+        if (zone.functional === 'Yes') yesCount++;
+        else if (zone.functional === 'No') noCount++;
+        else naCount++;
+      });
+      
+      const funcData = [], funcLabels = [], funcColors = [];
+      if (yesCount > 0) { funcData.push(yesCount); funcLabels.push(`Functional (${yesCount})`); funcColors.push('#28a745'); }
+      if (noCount > 0) { funcData.push(noCount); funcLabels.push(`Non-Functional (${noCount})`); funcColors.push('#dc3545'); }
+      if (naCount > 0) { funcData.push(naCount); funcLabels.push(`N/A (${naCount})`); funcColors.push('#ffc107'); }
+      
+      if (funcData.length > 0) {
+        new Chart(funcCtx, {
+          type: 'pie',
+          data: { 
+            labels: funcLabels, 
+            datasets: [{ 
+              data: funcData, 
+              backgroundColor: funcColors, 
+              borderWidth: 0,  // FIXED: Remove borders completely for print
+              borderColor: 'transparent'
+            }] 
+          },
+          options: { 
+            responsive: false,
+            maintainAspectRatio: false,
+            animation: false,  // FIXED: Disable animation for print
+            layout: {
+              padding: 15  // FIXED: Increase padding for print
+            },
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  color: '#000', 
+                  font: { size: 10 }, 
+                  padding: 10,
+                  usePointStyle: true,
+                  boxWidth: 12
+                } 
+              } 
+            } 
+          }
+        });
+      }
+    }
+    
+    // Generate zone type print chart
+    const typeCanvas = document.getElementById('printZoneTypeChart');
+    if (typeCanvas) {
+      // FIXED: Properly clear and size canvas
+      const typeCtx = typeCanvas.getContext('2d');
+      typeCanvas.width = 300;
+      typeCanvas.height = 300;
+      typeCtx.clearRect(0, 0, typeCanvas.width, typeCanvas.height);
+      
+      const typeCounts = {};
+      zoneList.forEach(zone => {
+        if (zone.type && zone.type.trim() !== '') {
+          const type = zone.type;
+          typeCounts[type] = (typeCounts[type] || 0) + 1;
+        }
+      });
+      
+      const typeLabels = Object.keys(typeCounts).map(type => `${type} (${typeCounts[type]})`);
+      const typeData = Object.values(typeCounts);
+      const typeColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43'];
+      
+      if (typeData.length > 0) {
+        new Chart(typeCtx, {
+          type: 'pie',
+          data: { 
+            labels: typeLabels, 
+            datasets: [{ 
+              data: typeData, 
+              backgroundColor: typeColors.slice(0, typeData.length), 
+              borderWidth: 0,  // FIXED: Remove borders completely for print
+              borderColor: 'transparent' 
+            }] 
+          },
+          options: { 
+            responsive: false,
+            maintainAspectRatio: false,
+            animation: false,  // FIXED: Disable animation for print
+            layout: {
+              padding: 15  // FIXED: Increase padding for print
+            },
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  color: '#000', 
+                  font: { size: 10 }, 
+                  padding: 10,
+                  usePointStyle: true,
+                  boxWidth: 12
+                } 
+              } 
+            } 
+          }
+        });
+      } else {
+        const ctx = typeCanvas.getContext('2d');
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText('No zone types specified', typeCanvas.width / 2, typeCanvas.height / 2);
+      }
+    }
+    
+    // Generate notification device print chart
+    const notificationCanvas = document.getElementById('printNotificationChart');
+    if (notificationCanvas) {
+      // FIXED: Properly clear and size canvas
+      const notificationCtx = notificationCanvas.getContext('2d');
+      notificationCanvas.width = 300;
+      notificationCanvas.height = 300;
+      notificationCtx.clearRect(0, 0, notificationCanvas.width, notificationCanvas.height);
+      
+      const deviceCounts = {};
+      zoneList.forEach(zone => {
+        if (zone.notificationDevice && zone.notificationDevice.trim() !== '') {
+          const device = zone.notificationDevice;
+          deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+        }
+      });
+      
+      const deviceLabels = Object.keys(deviceCounts).map(device => `${device} (${deviceCounts[device]})`);
+      const deviceData = Object.values(deviceCounts);
+      const deviceColors = ['#e74c3c', '#3498db', '#f39c12', '#2ecc71', '#9b59b6', '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#f1c40f'];
+      
+      if (deviceData.length > 0) {
+        new Chart(notificationCtx, {
+          type: 'pie',
+          data: { 
+            labels: deviceLabels, 
+            datasets: [{ 
+              data: deviceData, 
+              backgroundColor: deviceColors.slice(0, deviceData.length), 
+              borderWidth: 0,  // FIXED: Remove borders completely for print
+              borderColor: 'transparent' 
+            }] 
+          },
+          options: { 
+            responsive: false,
+            maintainAspectRatio: false,
+            animation: false,  // FIXED: Disable animation for print
+            layout: {
+              padding: 15  // FIXED: Increase padding for print
+            },
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { 
+                  color: '#000', 
+                  font: { size: 10 }, 
+                  padding: 10,
+                  usePointStyle: true,
+                  boxWidth: 12
+                } 
+              } 
+            } 
+          }
+        });
+      } else {
+        const ctx = notificationCanvas.getContext('2d');
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText('No notification devices specified', notificationCanvas.width / 2, notificationCanvas.height / 2);
+      }
+    }
+    
+    console.log('✅ All print charts created successfully');
+    
+  } catch (error) {
+    console.error('❌ Error generating print charts:', error);
+  }
+}
+
+function downloadSaveBottom() {
+  const fileName = document.getElementById('saveFileName2').value.trim() || 'zone_inspection_backup';
+  const data = {
+    sections: sectionList,
+    zones: zoneList,
+    zoneTypes: zoneTypes,
+    notificationDevices: notificationDevices,
+    sectionStates: sectionStates,
+    timestamp: new Date().toISOString(),
+    version: "2.0"
+  };
+  
+  console.log('Saving data with custom zone types:', zoneTypes);
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName + ".json";
+  link.click();
+}
+
+function restoreFromFile2() {
+  const fileInput = document.getElementById("restoreFile2");
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.sections && data.zones) {
+        sectionList = data.sections || [];
+        zoneList = data.zones || [];
+        sectionStates = data.sectionStates || {};
+        
+        updateDropdownOptionsFromData(data);
+        
+        zoneList.forEach(zone => {
+          if (!zone.notificationDevice || zone.notificationDevice === "N/A") {
+            zone.notificationDevice = notificationDevices[0];
+          } else {
+            zone.notificationDevice = findBestMatch(zone.notificationDevice, notificationDevices);
+          }
+          
+          if (zone.type === "N/A") {
+            zone.type = zoneTypes[0];
+          } else if (zone.type) {
+            zone.type = findBestMatch(zone.type, zoneTypes);
+          }
+        });
+        
+        initializeApp();
+        alert("Backup successfully restored with updated dropdown options!");
+      } else if (Array.isArray(data)) {
+        zoneList = data;
+        updateDropdownOptionsFromZones(zoneList);
+        
+        zoneList.forEach(zone => {
+          if (!zone.notificationDevice || zone.notificationDevice === "N/A") {
+            zone.notificationDevice = notificationDevices[0];
+          } else {
+            zone.notificationDevice = findBestMatch(zone.notificationDevice, notificationDevices);
+          }
+          
+          if (zone.type === "N/A") {
+            zone.type = zoneTypes[0];
+          } else if (zone.type) {
+            zone.type = findBestMatch(zone.type, zoneTypes);
+          }
+        });
+        
+        sectionList = [];
+        sectionStates = {};
+        initializeApp();
+        alert("Legacy backup restored with updated dropdown options!");
+      } else {
+        alert("Invalid backup file.");
+      }
+    } catch (err) {
+      alert("Error reading backup file.");
+    }
+    fileInput.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function filterZones2() {
+  const query = document.getElementById('searchZone2').value.toLowerCase();
+  const resultsContainer = document.getElementById('searchResults2');
+  resultsContainer.innerHTML = '';
+  if (!query) {
+    resultsContainer.style.display = 'none';
+    return;
+  }
+  const matches = zoneList.map((zone, index) => ({ name: zone.name, index }))
+    .filter(zone => zone.name.toLowerCase().includes(query));
+  if (matches.length === 0) {
+    resultsContainer.style.display = 'none';
+    return;
+  }
+  resultsContainer.style.display = 'block';
+  const closeBtn = document.createElement('div');
+  closeBtn.className = 'search-close';
+  closeBtn.innerHTML = `<span onclick="clearSearch2()">✕</span>`;
+  resultsContainer.appendChild(closeBtn);
+  matches.forEach(match => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.textContent = match.name;
+    item.onclick = () => scrollToZone(match.index);
+    resultsContainer.appendChild(item);
+  });
+}
+
+function clearSearch2() {
+  document.getElementById('searchResults2').style.display = 'none';
+  document.getElementById('searchZone2').value = '';
+}
+
+// Original button functions
+function downloadSave() {
+  const fileName = document.getElementById('saveFileName').value.trim() || 'zone_inspection_backup';
+  const data = {
+    sections: sectionList,
+    zones: zoneList,
+    zoneTypes: zoneTypes,
+    notificationDevices: notificationDevices,
+    sectionStates: sectionStates,
+    timestamp: new Date().toISOString(),
+    version: "2.0"
+  };
+  
+  console.log('Saving data with custom zone types:', zoneTypes);
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName + ".json";
+  link.click();
+}
+
+function restoreFromFile() {
+  const fileInput = document.getElementById("restoreFile");
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.sections && data.zones) {
+        sectionList = data.sections || [];
+        zoneList = data.zones || [];
+        sectionStates = data.sectionStates || {};
+        
+        updateDropdownOptionsFromData(data);
+        
+        zoneList.forEach(zone => {
+          if (!zone.notificationDevice || zone.notificationDevice === "N/A") {
+            zone.notificationDevice = notificationDevices[0];
+          } else {
+            zone.notificationDevice = findBestMatch(zone.notificationDevice, notificationDevices);
+          }
+          
+          if (zone.type === "N/A") {
+            zone.type = zoneTypes[0];
+          } else if (zone.type) {
+            zone.type = findBestMatch(zone.type, zoneTypes);
+          }
+        });
+        
+        initializeApp();
+        alert("Backup successfully restored with updated dropdown options!");
+      } else if (Array.isArray(data)) {
+        zoneList = data;
+        updateDropdownOptionsFromZones(zoneList);
+        
+        zoneList.forEach(zone => {
+          if (!zone.notificationDevice || zone.notificationDevice === "N/A") {
+            zone.notificationDevice = notificationDevices[0];
+          } else {
+            zone.notificationDevice = findBestMatch(zone.notificationDevice, notificationDevices);
+          }
+          
+          if (zone.type === "N/A") {
+            zone.type = zoneTypes[0];
+          } else if (zone.type) {
+            zone.type = findBestMatch(zone.type, zoneTypes);
+          }
+        });
+        
+        sectionList = [];
+        sectionStates = {};
+        initializeApp();
+        alert("Legacy backup restored with updated dropdown options!");
+      } else {
+        alert("Invalid backup file.");
+      }
+    } catch (err) {
+      alert("Error reading backup file.");
+    }
+    fileInput.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function filterZones() {
+  const query = document.getElementById('searchZone').value.toLowerCase();
+  const resultsContainer = document.getElementById('searchResults');
+  resultsContainer.innerHTML = '';
+  if (!query) {
+    resultsContainer.style.display = 'none';
+    return;
+  }
+  const matches = zoneList.map((zone, index) => ({ name: zone.name, index }))
+    .filter(zone => zone.name.toLowerCase().includes(query));
+  if (matches.length === 0) {
+    resultsContainer.style.display = 'none';
+    return;
+  }
+  resultsContainer.style.display = 'block';
+  const closeBtn = document.createElement('div');
+  closeBtn.className = 'search-close';
+  closeBtn.innerHTML = `<span onclick="clearSearch()">✕</span>`;
+  resultsContainer.appendChild(closeBtn);
+  matches.forEach(match => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.textContent = match.name;
+    item.onclick = () => scrollToZone(match.index);
+    resultsContainer.appendChild(item);
+  });
+}
+
+function clearSearch() {
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('searchZone').value = '';
+}
+
+function scrollToZone(index) {
+  const zoneElement = document.getElementById(`zone-details-${index}`);
+  if (zoneElement && zoneElement.style.display === 'none') {
+    toggleZoneDetails(index);
+  }
+  const nameElement = document.getElementById(`name-${index}`);
+  if (nameElement) {
+    nameElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('searchZone').value = '';
+  document.getElementById('searchResults2').style.display = 'none';
+  document.getElementById('searchZone2').value = '';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('chartsModal');
+  if (event.target === modal) {
+    closeCharts();
+  }
+}
+</script>
+
+</body>
+</html>

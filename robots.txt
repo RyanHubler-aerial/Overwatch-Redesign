@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /inspection.html
+
+Sitemap: https://overwatchus.com/sitemap.xml

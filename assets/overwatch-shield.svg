@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 60" fill="none" role="img" aria-label="OverWatch Security Shield">
+  <!-- Outer Cerulean Shield Border -->
+  <polygon points="28,2.5 53.5,10 47,41.5 28,58 9,41.5 2.5,10" fill="#007cc7"/>
+  <!-- Inner Crisp White Shield Body -->
+  <polygon points="28,6.2 49.8,12.6 43.9,39.8 28,53.8 12.1,39.8 6.2,12.6" fill="#ffffff"/>
+  <!-- Top-Right Blue Facets -->
+  <polygon points="14.8,14.2 28,10.6 44.6,15.5 31.2,26.2" fill="#0082d1"/>
+  <polygon points="44.6,15.5 40.4,33.2 31.2,26.2" fill="#004d80"/>
+  <!-- Bottom-Left Tactical Gray Facets -->
+  <polygon points="11.4,21.5 27.6,34.4 27.6,48.8 15.6,38.4" fill="#706960"/>
+  <polygon points="27.6,34.4 36.8,41.6 27.6,48.8" fill="#46413b"/>
+</svg>
